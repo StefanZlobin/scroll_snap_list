@@ -2,6 +2,7 @@ library scroll_snap_list;
 
 import 'dart:math';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 ///Anchor location for selected item in the list
@@ -141,29 +142,29 @@ class ScrollSnapList extends StatefulWidget {
 }
 
 class ScrollSnapListState extends State<ScrollSnapList> {
-  late final SnapScrollListController scrollController;
-  late final double itemExtent;
+  late final SnapScrollListController _scrollController;
+  late final double _itemExtent;
 
   /// true if initialIndex exists and first drag hasn't occurred
-  bool waitingForFirstDrag = true;
+  bool _waitingForFirstDrag = true;
   //to avoid multiple onItemFocus when using updateOnScroll
-  int previousIndex = -1;
+  int _previousIndex = -1;
   //Current scroll-position in pixel
-  double currentPixel = 0;
+  double _currentPixel = 0;
 
   bool _programmaticallyControlledScrollInProgress = false;
 
   void initState() {
     super.initState();
-    scrollController = widget.scrollController ?? SnapScrollListController(itemExtent: widget.itemExtent!);
-    itemExtent = widget.itemExtent ?? scrollController.itemExtent;
-    scrollController._attach(this);
+    _scrollController = widget.scrollController ?? SnapScrollListController(itemExtent: widget.itemExtent!);
+    _itemExtent = widget.itemExtent ?? _scrollController.itemExtent;
+    _scrollController._attach(this);
     WidgetsBinding.instance!.addPostFrameCallback((_) {
       if (widget.initialIndex != null) {
         //set list's initial position
-        focusToInitialPosition();
+        _focusToInitialPosition();
       } else {
-        waitingForFirstDrag = false;
+        _waitingForFirstDrag = false;
       }
     });
 
@@ -171,17 +172,17 @@ class ScrollSnapListState extends State<ScrollSnapList> {
     Future.delayed(Duration(milliseconds: 10), () {
       if (this.mounted) {
         setState(() {
-          waitingForFirstDrag = false;
+          _waitingForFirstDrag = false;
         });
       }
     });
   }
 
   ///Calculate scale transformation for dynamic item size
-  double calculateScale(int index) {
+  double _calculateScale(int index) {
     //scroll-pixel position for index to be at the center of ScrollSnapList
-    double intendedPixel = index * itemExtent;
-    double difference = intendedPixel - currentPixel;
+    double intendedPixel = index * _itemExtent;
+    double difference = intendedPixel - _currentPixel;
 
     if (widget.dynamicSizeEquation != null) {
       //force to be >= 0
@@ -194,10 +195,10 @@ class ScrollSnapListState extends State<ScrollSnapList> {
   }
 
   ///Calculate opacity transformation for dynamic item opacity
-  double calculateOpacity(int index) {
+  double _calculateOpacity(int index) {
     //scroll-pixel position for index to be at the center of ScrollSnapList
-    double intendedPixel = index * itemExtent;
-    double difference = intendedPixel - currentPixel;
+    double intendedPixel = index * _itemExtent;
+    double difference = intendedPixel - _currentPixel;
 
     return (difference == 0) ? 1.0 : widget.dynamicItemOpacity ?? 1.0;
   }
@@ -206,7 +207,7 @@ class ScrollSnapListState extends State<ScrollSnapList> {
     Widget child;
     if (widget.dynamicItemSize) {
       child = Transform.scale(
-        scale: calculateScale(index),
+        scale: _calculateScale(index),
         child: widget.itemBuilder(context, index),
       );
     } else {
@@ -214,7 +215,7 @@ class ScrollSnapListState extends State<ScrollSnapList> {
     }
 
     if (widget.dynamicItemOpacity != null) {
-      child = Opacity(child: child, opacity: calculateOpacity(index));
+      child = Opacity(child: child, opacity: _calculateOpacity(index));
     }
 
     return child;
@@ -223,8 +224,8 @@ class ScrollSnapListState extends State<ScrollSnapList> {
   int _calcCardIndex(double pixel, double itemExtent) => ((pixel - itemExtent / 2) / itemExtent).ceil();
 
   ///Determine location if initialIndex is set
-  void focusToInitialPosition() {
-    scrollController.jumpTo((widget.initialIndex! * itemExtent));
+  void _focusToInitialPosition() {
+    _scrollController.jumpTo((widget.initialIndex! * _itemExtent));
   }
 
   ///Trigger callback on reach end-of-list
@@ -235,7 +236,7 @@ class ScrollSnapListState extends State<ScrollSnapList> {
   @override
   void dispose() {
     if (widget.scrollController == null) {
-      scrollController.dispose();
+      _scrollController.dispose();
     }
     super.dispose();
   }
@@ -260,11 +261,11 @@ class ScrollSnapListState extends State<ScrollSnapList> {
             case SelectedItemAnchor.middle:
               _listPadding =
                   (widget.scrollDirection == Axis.horizontal ? constraint.maxWidth : constraint.maxHeight) / 2 -
-                      itemExtent / 2;
+                      _itemExtent / 2;
               break;
             case SelectedItemAnchor.end:
-              _listPadding =
-                  (widget.scrollDirection == Axis.horizontal ? constraint.maxWidth : constraint.maxHeight) - itemExtent;
+              _listPadding = (widget.scrollDirection == Axis.horizontal ? constraint.maxWidth : constraint.maxHeight) -
+                  _itemExtent;
               break;
           }
 
@@ -275,50 +276,50 @@ class ScrollSnapListState extends State<ScrollSnapList> {
               onNotification: (ScrollNotification scrollInfo) {
                 if (scrollInfo is ScrollEndNotification) {
                   // don't snap until first drag
-                  if (waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
+                  if (_waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
                     return true;
                   }
 
-                  double tolerance = widget.endOfListTolerance ?? (itemExtent / 2);
+                  double tolerance = widget.endOfListTolerance ?? (_itemExtent / 2);
                   if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - tolerance) {
                     _onReachEnd();
                   }
 
-                  final index = _calcCardIndex(scrollInfo.metrics.pixels, itemExtent);
-                  if (index != previousIndex) {
-                    previousIndex = index;
+                  final index = _calcCardIndex(scrollInfo.metrics.pixels, _itemExtent);
+                  if (index != _previousIndex) {
+                    _previousIndex = index;
 
                     if (widget.onItemFocus != null) widget.onItemFocus!(index);
 
-                    if (waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
+                    if (_waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
                       return true;
                     }
 
-                    if (waitingForFirstDrag == false) {
-                      Future.delayed(Duration.zero, () => scrollController.animateToIndex(index));
+                    if (_waitingForFirstDrag == false) {
+                      Future.delayed(Duration.zero, () => _scrollController.animateToIndex(index));
                     }
                   }
                 } else if (scrollInfo is ScrollUpdateNotification) {
                   //save pixel position for scale-effect
                   if (widget.dynamicItemSize || widget.dynamicItemOpacity != null) {
                     setState(() {
-                      currentPixel = scrollInfo.metrics.pixels;
+                      _currentPixel = scrollInfo.metrics.pixels;
                     });
                   }
 
-                  final index = _calcCardIndex(scrollInfo.metrics.pixels, itemExtent);
-                  if (index != previousIndex) {
-                    previousIndex = index;
+                  final index = _calcCardIndex(scrollInfo.metrics.pixels, _itemExtent);
+                  if (index != _previousIndex) {
+                    _previousIndex = index;
 
                     if (widget.onItemFocus != null) widget.onItemFocus!(index);
 
                     if (widget.snapOnScroll) {
-                      if (waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
+                      if (_waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
                         return true;
                       }
 
-                      if (waitingForFirstDrag == false) {
-                        Future.delayed(Duration.zero, () => scrollController.animateToIndex(index));
+                      if (_waitingForFirstDrag == false) {
+                        Future.delayed(Duration.zero, () => _scrollController.animateToIndex(index));
                       }
                     }
                   }
