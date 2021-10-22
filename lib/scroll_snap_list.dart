@@ -309,16 +309,16 @@ class ScrollSnapListState extends State<ScrollSnapList> {
 
                   final index = _calcCardIndex(scrollInfo.metrics.pixels, itemExtent);
                   if (widget.snapOnScroll) {
+                    if (waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
+                      return true;
+                    }
+
                     if (index != previousIndex) {
                       previousIndex = index;
 
                       if (widget.onItemFocus != null) widget.onItemFocus!(index);
 
-                      if (waitingForFirstDrag || _programmaticallyControlledScrollInProgress) {
-                        return true;
-                      } else {
-                        Future.delayed(const Duration(milliseconds: 20), () => scrollController.animateToIndex(index));
-                      }
+                      Future.delayed(const Duration(milliseconds: 20), () => scrollController.animateToIndex(index));
                     }
                   }
                 }
