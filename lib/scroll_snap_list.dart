@@ -134,6 +134,10 @@ class ScrollSnapList extends StatefulWidget {
     this.scrollPhysics,
   })  : assert((listPadding == null) != (selectedItemAnchor == null), 'Exactly one parameter must me set.'),
         assert((scrollController == null) != (itemExtent == null), 'Exactly one parameter must me set.'),
+        assert(
+          itemExtent != null || scrollController?._itemExtent != null,
+          'ItemExtent should be privided to either [scrollController] or widget.',
+        ),
         super(key: key);
 
   @override
@@ -156,7 +160,7 @@ class ScrollSnapListState extends State<ScrollSnapList> {
   void initState() {
     super.initState();
     scrollController = widget.scrollController ?? SnapScrollListController(itemExtent: widget.itemExtent!);
-    itemExtent = widget.itemExtent ?? scrollController.itemExtent;
+    itemExtent = widget.itemExtent ?? scrollController._itemExtent!;
     scrollController._attach(this);
     WidgetsBinding.instance!.addPostFrameCallback((_) {
       if (widget.initialIndex != null) {
@@ -344,7 +348,7 @@ class ScrollSnapListState extends State<ScrollSnapList> {
 }
 
 class SnapScrollListController extends ScrollController {
-  SnapScrollListController({required this.itemExtent});
+  SnapScrollListController({double? itemExtent}) : _itemExtent = itemExtent;
 
   ScrollSnapListState? _state;
   bool get isAttached => _state != null;
@@ -353,8 +357,18 @@ class SnapScrollListController extends ScrollController {
     _state = state;
   }
 
-  final double itemExtent;
+  final double? _itemExtent;
+  double get itemExtent {
+    if (_itemExtent != null) {
+      return _itemExtent!;
+    } else {
+      assert(isAttached, 'To retrieve itemExtent from widget, this controller should be attached.');
+      return _state!.widget.itemExtent!;
+    }
+  }
+
   Future<void> animateToIndex(int index, {Duration? duration, Curve? curve}) {
+    assert(isAttached, 'This controller should be attached to SnapScrollList to perform scroll animations.');
     final scrollTarget = itemExtent * index;
 
     return animateTo(scrollTarget, duration: duration, curve: curve);
