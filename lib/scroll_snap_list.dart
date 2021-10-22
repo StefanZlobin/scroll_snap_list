@@ -133,7 +133,6 @@ class ScrollSnapList extends StatefulWidget {
     this.listPadding,
     this.scrollPhysics,
   })  : assert((listPadding == null) != (selectedItemAnchor == null), 'Exactly one parameter must me set.'),
-        assert((scrollController == null) != (itemExtent == null), 'Exactly one parameter must me set.'),
         assert(
           itemExtent != null || scrollController?._itemExtent != null,
           'ItemExtent should be privided to either [scrollController] or widget.',
