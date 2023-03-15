@@ -108,7 +108,7 @@ class ScrollSnapList extends StatefulWidget {
 
   /// Позволяет прокидвать callback в [initState] [ScrollSnapList]
   /// Нужно, так как не работает вызов [onItemFocus] в [initState]
-  final VoidCallback? callbackDuringInitialization
+  final VoidCallback? callbackDuringInitialization;
 
   ScrollSnapList({
     this.background,
