@@ -106,6 +106,10 @@ class ScrollSnapList extends StatefulWidget {
   /// {@macro flutter.widgets.scroll_view.physics}
   final ScrollPhysics? scrollPhysics;
 
+  /// Позволяет прокидвать callback в [initState] [ScrollSnapList]
+  /// Нужно, так как не работает вызов [onItemFocus] в [initState]
+  final VoidCallback? callbackDuringInitialization
+
   ScrollSnapList({
     this.background,
     required this.itemBuilder,
@@ -132,6 +136,7 @@ class ScrollSnapList extends StatefulWidget {
     this.selectedItemAnchor,
     this.listPadding,
     this.scrollPhysics,
+    this.callbackDuringInitialization,
   })  : assert((listPadding == null) != (selectedItemAnchor == null), 'Exactly one parameter must me set.'),
         assert(
           itemExtent != null || scrollController?._itemExtent != null,
@@ -165,6 +170,7 @@ class ScrollSnapListState extends State<ScrollSnapList> {
       if (widget.initialIndex != null) {
         //set list's initial position
         focusToInitialPosition();
+        widget.callbackDuringInitialization?.call();
       } else {
         waitingForFirstDrag = false;
       }
